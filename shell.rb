@@ -61,6 +61,7 @@ module Hush
         pipe = []
 
         commands.each_with_index do |command, index|
+          # TODO: should be after the command has executed to be closer to spec
           Hush::History.add(command)
 
           program, *arguments = Shellwords.shellsplit(command)
@@ -135,7 +136,7 @@ module Hush
 
     def spawn_program(program, *arguments, placeholder_out, placeholder_in)
       fork do
-        # TODO: why doesn't this work either?
+        # TODO: learn how forking friggin processes works
         # trap(:SIGINT) { Hush::Exit.call(130) }
 
         unless placeholder_out == $stdout
