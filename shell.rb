@@ -36,7 +36,9 @@ module Hush
       "where" => Hush::Whence.method(:where),
       "which" => Hush::Whence.method(:which),
     }
-    PIPE_SPLIT_REGEX = /([^"'|]+)|["']([^"']+)["']/.freeze
+    # this one is flawed but the one below this isnt perfect either
+    # PIPE_SPLIT_REGEX = /([^"'|]+)|["']([^"']+)["']/.freeze
+    PIPE_SPLIT_REGEX = /(.+(?<=\=)["'].+["'])|([^"'|]+)/.freeze
 
     def initialize
       @prompt = Hush::Prompt.new
@@ -54,7 +56,9 @@ module Hush
 
         Hush::Exit.call if line.nil?
 
+        # lol surprise: this can be blocking
         replaced_line = replace_bang_commands(line.strip)
+
         commands = split_on_pipes(replaced_line)
         placeholder_in = $stdin
         placeholder_out = $stdout
@@ -63,6 +67,9 @@ module Hush
         commands.each_with_index do |command, index|
           # TODO: should be after the command has executed to be closer to spec
           Hush::History.add(command)
+
+          # TODO: this needs to happen before splitting commands on pipes
+          command = Hush::Alias.replace(command)
 
           program, *arguments = Shellwords.shellsplit(command)
 
