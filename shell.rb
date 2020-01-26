@@ -20,6 +20,13 @@ module Hush
   class BangCommandError < StandardError; end
 
   class Shell
+    def self.energy_recharge
+      Hush.bedtime
+    end
+
+    # TODO: move this to it's own class. it's causing loading difficulties
+    # as evident from above. moving this out of a constant we can start doing
+    # runtime evaluation.
     BUILTINS = {
       "alias" => Hush::Alias,
       "cd" => Hush::ChangeDirectory,
@@ -35,6 +42,7 @@ module Hush
       "whence" => Hush::Whence,
       "where" => Hush::Whence.method(:where),
       "which" => Hush::Whence.method(:which),
+      "bedtime" => self.method(:energy_recharge),
     }
     # this one is flawed but the one below this isnt perfect either
     # PIPE_SPLIT_REGEX = /([^"'|]+)|["']([^"']+)["']/.freeze
@@ -46,6 +54,7 @@ module Hush
 
     def start!
       trap("SIGINT") do
+        Hush.wake_up
         $stdout.puts
         prompt.print
       end
@@ -56,7 +65,13 @@ module Hush
 
         Hush::Exit.call if line.nil?
 
-        # lol surprise: this can be blocking
+        Hush.work
+
+        # this section should handle allll replacements:
+        #   * bang commands
+        #   * alias
+        #   * command substitution
+        # lol surprise! this can block on io
         replaced_line = replace_bang_commands(line.strip)
 
         commands = split_on_pipes(replaced_line)
